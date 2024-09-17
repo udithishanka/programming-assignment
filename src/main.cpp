@@ -15,8 +15,8 @@ Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_RST);
 
 // Snake parameters
 #define SNAKE_SIZE 10
-#define SCREEN_WIDTH  240
-#define SCREEN_HEIGHT 320
+#define SCREEN_WIDTH  400
+#define SCREEN_HEIGHT 190
 
 // Initial snake parameters
 int snakeX[100], snakeY[100]; // Snake body coordinates
@@ -97,11 +97,11 @@ void readJoystick() {
 
   if (abs(xVal) > deadzone || abs(yVal) > deadzone) {
     if (abs(xVal) > abs(yVal)) {
-      if (xVal > deadzone && direction != 3) direction = 1; // Move right
-      if (xVal < -deadzone && direction != 1) direction = 3; // Move left
+      if (xVal > deadzone && direction != 3) direction = 3; // Move right
+      if (xVal < -deadzone && direction != 1) direction = 1; // Move left
     } else {
-      if (yVal > deadzone && direction != 0) direction = 2; // Move down
-      if (yVal < -deadzone && direction != 2) direction = 0; // Move up
+      if (yVal > deadzone && direction != 0) direction = 0; // Move down
+      if (yVal < -deadzone && direction != 2) direction = 2; // Move up
     }
   }
 }
@@ -121,15 +121,18 @@ void setup() {
   // Generate initial food
   generateFood();
   
-  // Display initial score and level
-  tft.setCursor(10, 10);
+  tft.fillRect(0, SCREEN_HEIGHT - 20, SCREEN_WIDTH, 20, ILI9341_BLACK);
+  tft.setCursor(10, SCREEN_HEIGHT - 20 + 35);
   tft.setTextColor(ILI9341_WHITE);
   tft.setTextSize(2);
   tft.print("Score: ");
   tft.print(score);
-  tft.setCursor(150, 10);
+
+  // Set cursor for Level closer to the bottom center
+  tft.setCursor(SCREEN_WIDTH / 2 + 10, SCREEN_HEIGHT - 20 + 35); 
   tft.print("Level: ");
   tft.print(level);
+
 }
 
 void loop() {
@@ -147,9 +150,9 @@ void loop() {
     snakeLength++;
     generateFood();
     
-    // Update score and level
+    // // Update score and level
     tft.fillRect(0, 0, SCREEN_WIDTH, 20, ILI9341_BLACK);
-    tft.setCursor(10, 10);
+    tft.setCursor(10, 150);
     tft.setTextColor(ILI9341_WHITE);
     tft.setTextSize(2);
     tft.print("Score: ");
