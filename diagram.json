@@ -1,0 +1,175 @@
+{
+    "version": 1,
+    "author": "Udith Ishanka",
+    "editor": "wokwi",
+    "parts": [
+        {
+            "type": "wokwi-arduino-uno",
+            "id": "uno",
+            "top": -28.2,
+            "left": 153,
+            "attrs": {}
+        },
+        {
+            "type": "wokwi-ili9341",
+            "id": "lcd1",
+            "top": -93.2,
+            "left": -139.3,
+            "rotate": -90,
+            "attrs": {}
+        },
+        {
+            "type": "wokwi-analog-joystick",
+            "id": "joystick1",
+            "top": 28.2,
+            "left": 456.6,
+            "attrs": {}
+        }
+    ],
+    "connections": [
+        [
+            "joystick1:VCC",
+            "uno:5V",
+            "red",
+            [
+                "v67.2",
+                "h-172.8",
+                "v-9.6"
+            ]
+        ],
+        [
+            "joystick1:GND",
+            "uno:GND.2",
+            "black",
+            [
+                "v67.2",
+                "h0",
+                "v9.6",
+                "h-201.6"
+            ]
+        ],
+        [
+            "joystick1:VERT",
+            "uno:A0",
+            "green",
+            [
+                "v57.6",
+                "h-134.4"
+            ]
+        ],
+        [
+            "joystick1:HORZ",
+            "uno:A1",
+            "green",
+            [
+                "v48",
+                "h-134.4"
+            ]
+        ],
+        [
+            "joystick1:SEL",
+            "uno:7",
+            "green",
+            [
+                "v38.4",
+                "h-76.8",
+                "v-230.4",
+                "h-105.6",
+                "v9.6"
+            ]
+        ],
+        [
+            "lcd1:VCC",
+            "uno:5V",
+            "red",
+            [
+                "v124.8",
+                "h226.6"
+            ]
+        ],
+        [
+            "lcd1:GND",
+            "uno:GND.3",
+            "black",
+            [
+                "h28.8",
+                "v144",
+                "h216.8"
+            ]
+        ],
+        [
+            "lcd1:RST",
+            "uno:8",
+            "green",
+            [
+                "h28.8",
+                "v-115.2",
+                "v0",
+                "v-67.2",
+                "h210.8"
+            ]
+        ],
+        [
+            "lcd1:CS",
+            "uno:10",
+            "green",
+            [
+                "h57.6",
+                "v-163.2",
+                "h162.5"
+            ]
+        ],
+        [
+            "lcd1:D/C",
+            "uno:9",
+            "green",
+            [
+                "h9.6",
+                "v-124.8",
+                "h220"
+            ]
+        ],
+        [
+            "lcd1:MOSI",
+            "uno:11",
+            "green",
+            [
+                "h19.2",
+                "v-67.19"
+            ]
+        ],
+        [
+            "lcd1:SCK",
+            "uno:13",
+            "green",
+            [
+                "h67.2",
+                "v-86.39",
+                "h124.4"
+            ]
+        ],
+        [
+            "lcd1:LED",
+            "uno:3.3V",
+            "green",
+            [
+                "v-0.01",
+                "h48",
+                "v172.82",
+                "h168.6"
+            ]
+        ],
+        [
+            "lcd1:MISO",
+            "uno:12",
+            "green",
+            [
+                "v0.01",
+                "h38.4",
+                "v-144.02",
+                "h162.7"
+            ]
+        ]
+    ],
+    "dependencies": {}
+}
