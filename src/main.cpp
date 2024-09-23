@@ -31,17 +31,31 @@ int snakeSpeed = 200; // Initial speed (delay in ms)
 // Joystick deadzone
 int deadzone = 200;
 
-// Function to draw a block (snake or food)
 void drawBlock(int x, int y, uint16_t color) {
   tft.fillRect(x, y, SNAKE_SIZE, SNAKE_SIZE, color);
 }
 
-// Generate random food location
 void generateFood() {
-  foodX = (random(SCREEN_WIDTH / SNAKE_SIZE)) * SNAKE_SIZE;
-  foodY = (random(SCREEN_HEIGHT / SNAKE_SIZE)) * SNAKE_SIZE;
-  drawBlock(foodX, foodY, ILI9341_RED);
+  bool validPosition = false;
+
+  while (!validPosition) {
+    foodX = (random(SCREEN_WIDTH / SNAKE_SIZE)) * SNAKE_SIZE;
+    foodY = (random(SCREEN_HEIGHT / SNAKE_SIZE)) * SNAKE_SIZE;
+
+    validPosition = true;
+
+    // Check if food spawns on any part of the snake
+    for (int i = 0; i < snakeLength; i++) {
+      if (snakeX[i] == foodX && snakeY[i] == foodY) {
+        validPosition = false;  // Food overlaps with snake; generate again
+        break;
+      }
+    }
+  }
+
+  drawBlock(foodX, foodY, ILI9341_RED);  // Draw the new food
 }
+
 
 // Initialize the snake
 void initSnake() {
@@ -149,17 +163,24 @@ void loop() {
     score++;
     snakeLength++;
     generateFood();
-    
-    // // Update score and level
-    tft.fillRect(0, 0, SCREEN_WIDTH, 20, ILI9341_BLACK);
-    tft.setCursor(10, 150);
+
+    // Only clear the area where score and level numbers are displayed
+    tft.fillRect(85, SCREEN_HEIGHT - 20 + 35, 50, 20, ILI9341_BLACK);  // Clear old score
+    tft.fillRect(SCREEN_WIDTH / 2 + 80, SCREEN_HEIGHT - 20 + 35, 30, 20, ILI9341_BLACK); // Clear old level
+
+    // Update score
+    tft.setCursor(10, SCREEN_HEIGHT - 20 + 35);
     tft.setTextColor(ILI9341_WHITE);
     tft.setTextSize(2);
     tft.print("Score: ");
+    tft.setCursor(85, SCREEN_HEIGHT - 20 + 35); // Print score at a fixed position
     tft.print(score);
-    tft.setCursor(150, 10);
+
+    // Update level
+    tft.setCursor(SCREEN_WIDTH / 2 + 10, SCREEN_HEIGHT - 20 + 35);
     tft.print("Level: ");
     level = score / maxFood + 1;
+    tft.setCursor(SCREEN_WIDTH / 2 + 80, SCREEN_HEIGHT - 20 + 35); // Print level at a fixed position
     tft.print(level);
     
     // Increase speed
@@ -181,3 +202,4 @@ void loop() {
   
   delay(snakeSpeed); // Control game speed
 }
+
