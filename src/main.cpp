@@ -31,6 +31,58 @@ int snakeSpeed = 200;
 // Joystick deadzone
 int deadzone = 200;
 
+// Function to display a bootup introduction screen
+void showIntroScreen() {
+    tft.fillScreen(ILI9341_BLACK);  // Clear the screen
+    
+    // Draw a border around the screen
+    uint16_t borderColor = ILI9341_BLUE;
+    tft.drawRect(5, 5, SCREEN_WIDTH - 10, SCREEN_HEIGHT - 20, borderColor);  // Outer border
+    tft.drawRect(10, 10, SCREEN_WIDTH - 20, SCREEN_HEIGHT - 30, ILI9341_WHITE);  // Inner border
+
+    // Display "Snake Game" with a fade-in effect and scaling animation
+    for (int size = 4; size <= 4; size++) {
+        for (int i = 0; i < 25; i += 5) {
+            tft.fillScreen(ILI9341_BLACK);  // Clear screen for fade effect
+            tft.drawRect(5, 5, SCREEN_WIDTH - 10, SCREEN_HEIGHT - 20, borderColor);  // Re-draw border
+            tft.drawRect(10, 10, SCREEN_WIDTH - 20, SCREEN_HEIGHT - 30, ILI9341_WHITE);  // Re-draw inner border
+            
+            // Display the text in the center with color and size animations
+            tft.setCursor(40, 100);
+            tft.setTextColor(tft.color565(i, 255 - i, i));  // Color fade
+            tft.setTextSize(size);  // Text size scaling
+            tft.print("Snake Game");
+            delay(50);  // Control speed of fade-in
+        }
+    }
+
+    // Add a glowing snake icon effect (using simple blocks)
+    for (int j = 0; j < 5; j++) {
+        tft.fillRect(120 + j * 20, 50, SNAKE_SIZE, SNAKE_SIZE, ILI9341_GREEN);  // Draw snake blocks
+        delay(100);  // Simulate snake animation
+    }
+
+    delay(1000);  // Hold the screen for a moment
+
+    // Clear the screen and draw a solid black rectangle for the main text
+    tft.fillRect(0, 120, SCREEN_WIDTH, 40, ILI9341_BLACK);  // Create a black box for text
+    tft.setCursor(50, 130);
+    tft.setTextColor(ILI9341_YELLOW);
+    tft.setTextSize(2);
+    tft.print("Press Button to Start");
+
+    // Add some decorative horizontal lines
+    for (int linePos = 40; linePos < 300; linePos += 30) {
+        tft.drawFastHLine(linePos, 180, 20, ILI9341_RED);  // Horizontal lines for design
+        delay(50);  // Animation effect for drawing lines
+    }
+
+    // Wait for button press to start the game
+    while (digitalRead(JOY_SEL) == LOW);  // Wait until the joystick button is pressed
+    delay(200);  // Debounce delay
+}
+
+
 void drawBlock(int x, int y, uint16_t color) {
     tft.fillRect(x, y, SNAKE_SIZE, SNAKE_SIZE, color);
 }
@@ -122,7 +174,11 @@ void setup() {
     Serial.begin(9600);
     tft.begin();
     tft.setRotation(3);
-    tft.fillScreen(ILI9341_BLACK);
+
+    // Call the intro screen function
+    showIntroScreen();
+
+    tft.fillScreen(ILI9341_BLACK);  // Clear screen for the game
     pinMode(JOY_SEL, INPUT_PULLUP);
 
     // Attach interrupt for joystick button press
@@ -189,5 +245,3 @@ void loop() {
     
     delay(snakeSpeed); // Control game speed
 }
-
-
