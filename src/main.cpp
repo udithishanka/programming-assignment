@@ -2,6 +2,7 @@
 #include <Adafruit_ILI9341.h>
 #include <SPI.h>
 
+
 // Pin definitions for ILI9341 display
 #define TFT_CS   10
 #define TFT_DC   9
@@ -27,9 +28,21 @@ int score = 0;
 int level = 1;
 int maxFood = 2;
 int snakeSpeed = 200;
+int foodsEaten = 0;
+bool obstacleCreated = false;
 
 // Joystick deadzone
 int deadzone = 200;
+
+
+int obstacleX[] = {130,140, 150, 160, 170, 180, 130, 130, 130, 140, 150, 160, 170, 180, 180, 180, 180, 170, 160, 150, 140, 130 };
+int obstacleY[] = {50, 50, 50, 50, 50, 50, 60, 70, 80, 80, 80, 80, 80, 80, 90, 100, 110, 110, 110, 110, 110, 110, 110};
+                // 13  14  15  16  17  18  13  13  13  14  15  16  17  18  18  18   18   17   16   15   14
+int obstacleLength = sizeof(obstacleX) / sizeof(obstacleX[0]);
+
+
+
+
 
 void drawBlock(int x, int y, uint16_t color) {
     tft.fillRect(x, y, SNAKE_SIZE, SNAKE_SIZE, color);
@@ -45,11 +58,31 @@ void generateFood() {
 
         validPosition = true;
         for (int i = 0; i < snakeLength; i++) {
-            if (snakeX[i] == foodX && snakeY[i] == foodY) {
+            if (snakeX[i] == foodX && snakeY[i] == foodY && foodX == obstacleX[i] + 10 && foodY == obstacleY[i] + 10 && foodX == obstacleX[i] - 10 && foodY == obstacleY[i] - 10) {
                 validPosition = false;
                 break;
             }
         }
+
+        // Ensure food does not spawn inside the obstacle
+        if (obstacleCreated) {
+    validPosition = true; // Initialize validPosition to true
+
+    for (int i = 0; i < obstacleLength; i++) {
+        // Check if food spawns exactly at any obstacle position
+        if (foodX == obstacleX[i] && foodY == obstacleY[i]) {
+            validPosition = false; // Food is on top of an obstacle
+            break;
+        }
+        
+        // Check if food spawns too close to the obstacle (assuming a margin)
+        if (foodX >= obstacleX[i] - 10 && foodX <= obstacleX[i] + 10 &&
+            foodY >= obstacleY[i] - 10 && foodY <= obstacleY[i] + 10) {
+            validPosition = false; // Food is too close to an obstacle
+            break;
+        }
+    }
+}
     }
 
     drawBlock(foodX, foodY, ILI9341_RED);
@@ -95,10 +128,19 @@ bool checkSelfCollision() {
     return false;
 }
 
+bool checkObstacleCollision() {
+    if (!obstacleCreated) return false;
+
+    for (int i = 0; i < obstacleLength; i++) {
+        if (snakeX[0] == obstacleX[i] && snakeY[0] == obstacleY[i]) {
+            return true;
+        }
+    }
+    return false;
+}
+
 // Interrupt service routine for joystick button
 void buttonPress() {
-    // This is where you could add logic to change direction
-    // For now, just print a message for testing
     Serial.println("Button pressed");
 }
 
@@ -118,6 +160,12 @@ void readJoystick() {
     }
 }
 
+void drawObstacle() {
+    for (int i = 0; i < obstacleLength; i++) {
+        drawBlock(obstacleX[i], obstacleY[i], ILI9341_BLUE);
+    }
+}
+
 void setup() {
     Serial.begin(9600);
     tft.begin();
@@ -125,7 +173,6 @@ void setup() {
     tft.fillScreen(ILI9341_BLACK);
     pinMode(JOY_SEL, INPUT_PULLUP);
 
-    // Attach interrupt for joystick button press
     attachInterrupt(digitalPinToInterrupt(JOY_SEL), buttonPress, FALLING);
 
     // Initialize snake
@@ -154,6 +201,7 @@ void loop() {
     if (checkFoodCollision()) {
         score++;
         snakeLength++;
+        foodsEaten++;
         generateFood();
 
         tft.fillRect(85, SCREEN_HEIGHT - 20 + 35, 50, 20, ILI9341_BLACK);
@@ -173,20 +221,27 @@ void loop() {
         tft.print(level);
 
         if (snakeSpeed > 50) snakeSpeed -= 10;
+
+        // Create the obstacle after two pieces of food are eaten
+        if (foodsEaten >= 2 && !obstacleCreated) {
+            drawObstacle();
+            obstacleCreated = true;
+        }
     }
 
-    if (checkSelfCollision()) {
+    // Check for self-collision or obstacle collision
+    if (checkSelfCollision() || checkObstacleCollision()) {
         tft.fillScreen(ILI9341_RED);
         tft.setCursor(60, 160);
         tft.setTextColor(ILI9341_WHITE);
         tft.setTextSize(3);
-        tft.print("Game Over");
-        while (true); // Halt the game
+        tft.print("GAME OVER!");
+        while (true);  // Stop the game
     }
 
     // Draw the snake head
     drawBlock(snakeX[0], snakeY[0], ILI9341_GREEN);
-    
-    delay(snakeSpeed); // Control game speed
-}
 
+    // Slow down the game based on the snake speed
+    delay(snakeSpeed);
+}
