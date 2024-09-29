@@ -19,9 +19,7 @@ Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_RST);
 #define SCREEN_WIDTH  320
 #define SCREEN_HEIGHT 190
 #define BUZZER_PIN 6
-#define FOOD_SOUND_FREQ 1000 // Frequency for eating food (in Hz)
-#define GAME_OVER_SOUND_FREQ 500 // Frequency for game over (in Hz)
-#define SOUND_DURATION 200 // Duration of the sound in milliseconds
+#define SOUND_DURATION 200
 
 // Initial snake parameters
 int snakeX[100], snakeY[100];
@@ -35,6 +33,7 @@ int snakeSpeed = 200;
 int foodsEaten = 0;
 bool obstacleCreated = false;
 bool foodOnScreen = false; 
+int foodType = 0;
 
 unsigned long foodAppearTime = 0;
 bool timerActive = false;
@@ -91,7 +90,20 @@ void generateFood() {
             }
         }
 
-        drawBlock(foodX, foodY, ILI9341_ORANGE); // Draw new food
+        // Determine the type of food based on the level
+        if (level >= 4) {
+            foodType = random(2); // Randomly choose between normal (0) and red food (1)
+        } else {
+            foodType = 0; // Normal food for Levels 1 to 3
+        }
+
+        // Draw the appropriate food color
+        if (foodType == 0) {
+            drawBlock(foodX, foodY, ILI9341_ORANGE); // Normal food color
+        } else {
+            drawBlock(foodX, foodY, ILI9341_RED); // Red food color
+        }
+
         foodOnScreen = true;  // Mark that food is on the screen
         foodAppearTime = millis(); // Set time when food is generated
 
@@ -262,14 +274,18 @@ void loop() {
 
     // Check for food collision.
     if (checkFoodCollision()) {
-        score++;
-        snakeLength++;
-        foodsEaten++;
+        if (foodType == 0) { // Normal food
+            score++;
+            snakeLength++;
+            foodsEaten++;
+            playGoodFoodSound();  // Play a sound for eating good food
+        } else if (foodType == 1) { // Red food
+            score--; // Reduce score
+            playBadFoodSound(); // Play sound for eating bad food
+        }
 
         foodOnScreen = false;  // Mark that food is no longer on the screen
         generateFood();  // Generate new food
-
-        playGoodFoodSound();  // Play a sound for eating good food
 
         // Clear and update score display
         tft.fillRect(85 , SCREEN_HEIGHT - 20 +35 ,50 ,20 , ILI9341_BLACK); // Clear specific area
@@ -279,9 +295,15 @@ void loop() {
         tft.print("Score: ");
         tft.print(score);
 
+        // Update level
         level = score / maxFood + 1;
         if (level >= 3) {
             isLevelThree = true;
+        }
+
+        // Introduce Level 4
+        if (level >= 4) {
+            // Additional logic for level 4 can be implemented here, if needed
         }
 
         // Clear and update level display
