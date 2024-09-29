@@ -30,62 +30,66 @@ int maxFood = 2;
 int snakeSpeed = 200;
 int foodsEaten = 0;
 bool obstacleCreated = false;
+bool foodOnScreen = false; 
 
-// Joystick deadzone
-int deadzone = 200;
-
+unsigned long foodAppearTime = 0;
+bool timerActive = false;
+bool isLevelThree = false; 
 
 int obstacleX[] = {130,140, 150, 160, 170, 180, 130, 130, 130, 140, 150, 160, 170, 180, 180, 180, 180, 170, 160, 150, 140, 130 };
 int obstacleY[] = {50, 50, 50, 50, 50, 50, 60, 70, 80, 80, 80, 80, 80, 80, 90, 100, 110, 110, 110, 110, 110, 110, 110};
                 // 13  14  15  16  17  18  13  13  13  14  15  16  17  18  18  18   18   17   16   15   14
 int obstacleLength = sizeof(obstacleX) / sizeof(obstacleX[0]);
 
-
-
-
-
 void drawBlock(int x, int y, uint16_t color) {
     tft.fillRect(x, y, SNAKE_SIZE, SNAKE_SIZE, color);
 }
 
 void generateFood() {
-    drawBlock(foodX, foodY, ILI9341_BLACK);
-    bool validPosition = false;
+    if (!foodOnScreen) {  // Only generate food if there is none currently on the screen
+        drawBlock(foodX, foodY, ILI9341_BLACK);
+        bool validPosition = false;
 
-    while (!validPosition) {
-        foodX = (random(SCREEN_WIDTH / SNAKE_SIZE)) * SNAKE_SIZE;
-        foodY = (random(SCREEN_HEIGHT / SNAKE_SIZE)) * SNAKE_SIZE;
+        while (!validPosition) {
+            foodX = (random(SCREEN_WIDTH / SNAKE_SIZE)) * SNAKE_SIZE;
+            foodY = (random(SCREEN_HEIGHT / SNAKE_SIZE)) * SNAKE_SIZE;
 
-        validPosition = true;
-        for (int i = 0; i < snakeLength; i++) {
-            if (snakeX[i] == foodX && snakeY[i] == foodY && foodX == obstacleX[i] + 10 && foodY == obstacleY[i] + 10 && foodX == obstacleX[i] - 10 && foodY == obstacleY[i] - 10) {
-                validPosition = false;
-                break;
+            validPosition = true;
+            for (int i = 0; i < snakeLength; i++) {
+                if (snakeX[i] == foodX && snakeY[i] == foodY) {
+                    validPosition = false;
+                    break;
+                }
+            }
+
+            // Ensure food does not spawn too close to obstacles or barriers (if applicable)
+            if (obstacleCreated) {
+                for (int i = 0; i < obstacleLength; i++) {
+                    // Check if food spawns exactly at any obstacle position
+                    if (foodX == obstacleX[i] && foodY == obstacleY[i]) {
+                        validPosition = false; // Food is on top of an obstacle
+                        break;
+                    }
+
+                    // Check if food spawns too close to the obstacle (assuming a margin)
+                    if (foodX >= obstacleX[i] - 10 && foodX <= obstacleX[i] + 10 &&
+                        foodY >= obstacleY[i] - 10 && foodY <= obstacleY[i] + 10) {
+                        validPosition = false; // Food is too close to an obstacle
+                        break;
+                    }
+                }
             }
         }
 
-        // Ensure food does not spawn inside the obstacle
-        if (obstacleCreated) {
-    validPosition = true; // Initialize validPosition to true
+        drawBlock(foodX, foodY, ILI9341_RED); // Draw new food
+        foodOnScreen = true;  // Mark that food is on the screen
+        foodAppearTime = millis(); // Set time when food is generated
 
-    for (int i = 0; i < obstacleLength; i++) {
-        // Check if food spawns exactly at any obstacle position
-        if (foodX == obstacleX[i] && foodY == obstacleY[i]) {
-            validPosition = false; // Food is on top of an obstacle
-            break;
-        }
-        
-        // Check if food spawns too close to the obstacle (assuming a margin)
-        if (foodX >= obstacleX[i] - 10 && foodX <= obstacleX[i] + 10 &&
-            foodY >= obstacleY[i] - 10 && foodY <= obstacleY[i] + 10) {
-            validPosition = false; // Food is too close to an obstacle
-            break;
+        // Start timer only if at Level 3
+        if (isLevelThree) {
+            timerActive = true; // Activate the timer for Level 3
         }
     }
-}
-    }
-
-    drawBlock(foodX, foodY, ILI9341_RED);
 }
 
 void initSnake() {
@@ -139,31 +143,33 @@ bool checkObstacleCollision() {
     return false;
 }
 
-// Interrupt service routine for joystick button
-void buttonPress() {
-    Serial.println("Button pressed");
-}
-
-// Read joystick input for movement
 void readJoystick() {
     int xVal = analogRead(JOY_HORIZ) - 512;
     int yVal = analogRead(JOY_VERT) - 512;
 
-    if (abs(xVal) > deadzone || abs(yVal) > deadzone) {
-        if (abs(xVal) > abs(yVal)) {
-            if (xVal > deadzone && direction != 3) direction = 3; // Move right
-            if (xVal < -deadzone && direction != 1) direction = 1; // Move left
-        } else {
-            if (yVal > deadzone && direction != 0) direction = 0; // Move down
-            if (yVal < -deadzone && direction != 2) direction = 2; // Move up
-        }
+    if (abs(xVal) > abs(yVal)) {
+        if (xVal > 0 && direction != 3) direction = 3; // Move right
+        if (xVal < 0 && direction != 1) direction = 1; // Move left
+    } else {
+        if (yVal > 0 && direction != 0) direction = 0; // Move down
+        if (yVal < 0 && direction != 2) direction = 2; // Move up
     }
+    // delay(50);  // Short delay to prevent excessive polling
 }
 
 void drawObstacle() {
     for (int i = 0; i < obstacleLength; i++) {
         drawBlock(obstacleX[i], obstacleY[i], ILI9341_BLUE);
     }
+}
+
+void displayGameover(){
+    tft.fillScreen(ILI9341_RED);
+        tft.setCursor(60, 160);
+        tft.setTextColor(ILI9341_WHITE);
+        tft.setTextSize(3);
+        tft.print("GAME OVER!");
+        while (true);  // Stop the game
 }
 
 void setup() {
@@ -173,21 +179,50 @@ void setup() {
     tft.fillScreen(ILI9341_BLACK);
     pinMode(JOY_SEL, INPUT_PULLUP);
 
-    attachInterrupt(digitalPinToInterrupt(JOY_SEL), buttonPress, FALLING);
+    // attachInterrupt(digitalPinToInterrupt(JOY_SEL), buttonPress, FALLING);
 
     // Initialize snake
     initSnake();
     generateFood();
 
-    tft.fillRect(0, SCREEN_HEIGHT - 20, SCREEN_WIDTH, 20, ILI9341_BLACK);
+    // Directly update the score and level in the setup
+    // Update Score
+    tft.fillRect(0, SCREEN_HEIGHT - 20, SCREEN_WIDTH, 20, ILI9341_BLACK); // Clear specific area
     tft.setCursor(10, SCREEN_HEIGHT - 20 + 35);
     tft.setTextColor(ILI9341_WHITE);
     tft.setTextSize(2);
     tft.print("Score: ");
     tft.print(score);
-    tft.setCursor(SCREEN_WIDTH / 2 + 10, SCREEN_HEIGHT - 20 + 35);
+
+    // Update Level
+    
+    tft.setCursor(SCREEN_WIDTH / 3 + 10, SCREEN_HEIGHT - 20 + 35);
+    tft.setTextColor(ILI9341_WHITE);
     tft.print("Level: ");
     tft.print(level);
+}
+
+void countDown(){
+    if (timerActive && isLevelThree) {
+        int remainingTime = 5 - (millis() - foodAppearTime) / 1000;  // Calculate remaining time in seconds
+        if (remainingTime < 0) remainingTime = 0;  // Ensure the timer doesn't show negative values
+        
+        // Clear previous timer and update it
+        tft.fillRect(SCREEN_WIDTH / 3 * 2 + 10, SCREEN_HEIGHT - 20 + 35, 80, 20, ILI9341_BLACK);  // Clear previous timer area
+        tft.setCursor(SCREEN_WIDTH / 3 * 2 + 10, SCREEN_HEIGHT - 20 + 35);
+        tft.setTextColor(ILI9341_WHITE);
+        tft.setTextSize(2);
+        tft.print("Time: ");
+        tft.print(remainingTime);
+
+        // If the timer hits 0, remove the food and reset.
+        if (remainingTime <= 0) {
+            drawBlock(foodX, foodY, ILI9341_BLACK);  // Remove the food if the timer hits 0.
+            timerActive = false;  // Deactivate the timer to avoid repeated removal.
+            foodOnScreen = false;  // Mark that no food is on the screen
+            generateFood();  // Generate new food after the previous food disappears
+        }
+    }
 }
 
 void loop() {
@@ -195,53 +230,58 @@ void loop() {
 
     // Clear the snake tail
     drawBlock(snakeX[snakeLength - 1], snakeY[snakeLength - 1], ILI9341_BLACK);
+    
     updateSnake();
 
-    // Check for food collision
+    // Update the countdown timer in every loop iteration
+    countDown();  // Ensure the countdown updates continuously
+
+    // Check for food collision.
     if (checkFoodCollision()) {
         score++;
         snakeLength++;
         foodsEaten++;
-        generateFood();
 
-        tft.fillRect(85, SCREEN_HEIGHT - 20 + 35, 50, 20, ILI9341_BLACK);
-        tft.fillRect(SCREEN_WIDTH / 2 + 80, SCREEN_HEIGHT - 20 + 35, 30, 20, ILI9341_BLACK);
+        foodOnScreen = false;  // Mark that food is no longer on the screen
+        generateFood();  // Generate new food
 
-        tft.setCursor(10, SCREEN_HEIGHT - 20 + 35);
+        // Clear and update score display
+        tft.fillRect(85 , SCREEN_HEIGHT - 20 +35 ,50 ,20 , ILI9341_BLACK); // Clear specific area
+        tft.setCursor(10 , SCREEN_HEIGHT -20 +35);
         tft.setTextColor(ILI9341_WHITE);
         tft.setTextSize(2);
         tft.print("Score: ");
-        tft.setCursor(85, SCREEN_HEIGHT - 20 + 35);
         tft.print(score);
 
-        tft.setCursor(SCREEN_WIDTH / 2 + 10, SCREEN_HEIGHT - 20 + 35);
-        tft.print("Level: ");
         level = score / maxFood + 1;
-        tft.setCursor(SCREEN_WIDTH / 2 + 80, SCREEN_HEIGHT - 20 + 35);
+        if (level >= 3) {
+            isLevelThree = true;
+        }
+
+        // Clear and update level display
+        tft.fillRect(SCREEN_WIDTH / 3 + 80, SCREEN_HEIGHT - 20 + 35 ,80 ,20 , ILI9341_BLACK); // Clear specific area
+        tft.setCursor(SCREEN_WIDTH / 3 + 10, SCREEN_HEIGHT - 20 +35);
+        tft.print("Level: ");
         tft.print(level);
 
-        if (snakeSpeed > 50) snakeSpeed -= 10;
+        if (snakeSpeed > 50) 
+            snakeSpeed -= 10;
 
-        // Create the obstacle after two pieces of food are eaten
+        // Create the obstacle after two pieces of food are eaten.
         if (foodsEaten >= 2 && !obstacleCreated) {
             drawObstacle();
             obstacleCreated = true;
         }
     }
 
-    // Check for self-collision or obstacle collision
+    // Check for self-collision or obstacle collision.
     if (checkSelfCollision() || checkObstacleCollision()) {
-        tft.fillScreen(ILI9341_RED);
-        tft.setCursor(60, 160);
-        tft.setTextColor(ILI9341_WHITE);
-        tft.setTextSize(3);
-        tft.print("GAME OVER!");
-        while (true);  // Stop the game
+        displayGameover(); 
     }
 
-    // Draw the snake head
+    // Draw the snake head.
     drawBlock(snakeX[0], snakeY[0], ILI9341_GREEN);
 
-    // Slow down the game based on the snake speed
+    // Slow down the game based on the speed of the Snake.
     delay(snakeSpeed);
 }
