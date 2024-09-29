@@ -18,6 +18,10 @@ Adafruit_ILI9341 tft = Adafruit_ILI9341(TFT_CS, TFT_DC, TFT_RST);
 #define SNAKE_SIZE 10
 #define SCREEN_WIDTH  320
 #define SCREEN_HEIGHT 190
+#define BUZZER_PIN 6
+#define FOOD_SOUND_FREQ 1000 // Frequency for eating food (in Hz)
+#define GAME_OVER_SOUND_FREQ 500 // Frequency for game over (in Hz)
+#define SOUND_DURATION 200 // Duration of the sound in milliseconds
 
 // Initial snake parameters
 int snakeX[100], snakeY[100];
@@ -40,6 +44,12 @@ int obstacleX[] = {130,140, 150, 160, 170, 180, 130, 130, 130, 140, 150, 160, 17
 int obstacleY[] = {50, 50, 50, 50, 50, 50, 60, 70, 80, 80, 80, 80, 80, 80, 90, 100, 110, 110, 110, 110, 110, 110, 110};
                 // 13  14  15  16  17  18  13  13  13  14  15  16  17  18  18  18   18   17   16   15   14
 int obstacleLength = sizeof(obstacleX) / sizeof(obstacleX[0]);
+
+void playSound(int frequency) {
+    tone(BUZZER_PIN, frequency); // Play the sound
+    delay(SOUND_DURATION); // Wait for the duration
+    noTone(BUZZER_PIN); // Stop the sound
+}
 
 void drawBlock(int x, int y, uint16_t color) {
     tft.fillRect(x, y, SNAKE_SIZE, SNAKE_SIZE, color);
@@ -81,7 +91,7 @@ void generateFood() {
             }
         }
 
-        drawBlock(foodX, foodY, ILI9341_RED); // Draw new food
+        drawBlock(foodX, foodY, ILI9341_ORANGE); // Draw new food
         foodOnScreen = true;  // Mark that food is on the screen
         foodAppearTime = millis(); // Set time when food is generated
 
@@ -163,7 +173,20 @@ void drawObstacle() {
     }
 }
 
+void playGoodFoodSound(void) {
+  tone(BUZZER_PIN, 2058, 100);  // Play a 1000 Hz tone for 100ms
+}
+
+void playBadFoodSound(void) {
+  tone(BUZZER_PIN, 456, 100);   // Play a 500 Hz tone for 100ms
+}
+
+void playGameOverSound(void) {
+  tone(BUZZER_PIN, 258, 1000);  // Play a 250 Hz tone for 1 second
+}
+
 void displayGameover(){
+    playGameOverSound();  // Play a sound for game over
     tft.fillScreen(ILI9341_RED);
         tft.setCursor(60, 160);
         tft.setTextColor(ILI9341_WHITE);
@@ -178,6 +201,7 @@ void setup() {
     tft.setRotation(3);
     tft.fillScreen(ILI9341_BLACK);
     pinMode(JOY_SEL, INPUT_PULLUP);
+    pinMode(BUZZER_PIN, OUTPUT);
 
     // attachInterrupt(digitalPinToInterrupt(JOY_SEL), buttonPress, FALLING);
 
@@ -244,6 +268,8 @@ void loop() {
 
         foodOnScreen = false;  // Mark that food is no longer on the screen
         generateFood();  // Generate new food
+
+        playGoodFoodSound();  // Play a sound for eating good food
 
         // Clear and update score display
         tft.fillRect(85 , SCREEN_HEIGHT - 20 +35 ,50 ,20 , ILI9341_BLACK); // Clear specific area
